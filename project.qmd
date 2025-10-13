@@ -1,0 +1,1131 @@
+---
+title: "Dossier"
+author: "Pierre et Florian"
+format:
+  html:
+    toc: true
+    toc-title: Sommaire
+    code-fold: true
+    echo: true
+    eval: true
+    incremental: true
+  pdf:
+    toc: true
+    toc-title: Sommaire
+    code-fold: true
+    echo: true
+    eval: true
+    incremental: true
+  revealjs:
+    incremental: true
+---
+
+Import des packages
+
+```{r}
+library(openxlsx)
+library(car)
+library(MASS)
+library(tidyverse)
+library(EnvStats)
+library(stats)
+library(lmtest)
+library(PerformanceAnalytics)
+library(corrplot)
+library(sjPlot)
+library(ggplot2)
+library(leaps)
+library(AER)
+```
+
+
+# I. Analyse de la base de données : analyse descriptive
+
+## A. Visualisation globale des données
+
+Importation de la base sous R sous le nom Budget_Pierre_Florian, sauvegarde sous Budget.rda
+
+```{r}
+Budget <- read.xlsx("data/budget_pierre_florian.xlsx")
+
+save(Budget, file="Budget.rda")
+
+View(Budget)
+```
+
+
+Vérification de la nature des variables et modifications
+
+```{r}
+str(Budget)
+```
+
+```{r}
+fact <- c(1,3,4,5,7,8,10,11,13,14,15,16,17,20,22,23)
+num <- c(2,6,9,12,18,19,21,24)
+
+Budget[,fact]=lapply(Budget[,fact],as.factor)
+Budget[,num]=lapply(Budget[,num],as.numeric)
+```
+
+```{r}
+save(Budget, file="Budget.rda")
+```
+
+
+Statistiques selon la nature des variables
+
+Statistiques descriptives
+
+```{r}
+summary(Budget)
+```
+
+Les variables qualitatives ne présentent pas de données atypiques ou aberrantes.
+
+Les variables quantitatives ne contiennent aucune valeur aberrante (erreur de saisie).
+
+Notre étude porte sur l'année scolaire 2023-2024. Notre population est jeune, avec 75 % des individus ayant eu 22 ans ou moins, et principalement issue de la classe moyenne. Nous observons plus de femmes que d'hommes. Dans l'ensemble, les participants étaient peu stressés financièrement (75 % considéraient leur niveau de stress comme inférieur ou égal à 5/10) et respectaient le temps de sommeil nécessaire pour un adulte (75 % dormaient entre 7 et 9 heures par nuit). Parmi eux, 25 individus sur 150 ont rencontré des problèmes de santé.
+
+La plupart étudiaient à l'université, principalement dans le domaine de l'économie et de la gestion. Les trois quarts assistaient régulièrement aux cours (leur niveau d'assiduité étant estimé supérieur ou égal à 8/10 pour 75 % d'entre eux), et peu d'étudiants révisaient ou travaillaient leur cours plus de 2 heures par jour. La majorité n'avaient pas suivi de cours particuliers pendant leur formation ni assisté à du tutorat durant l'année scolaire.
+
+Les performances académiques étaient globalement bonnes : les trois quarts des étudiants ont obtenu au moins la mention "assez bien" (avec une moyenne supérieure à 12,06/20). Près d'un tiers des participants exerçaient une activité professionnelle en parallèle de leurs études, trois sur quatre travaillant 10 heures et demie au plus par semaine. La majorité des étudiants étaient non boursiers (pratiquement un sur trois), plus de la moitié payaient un loyer et environ autant bénéficiaient de la CAF.
+
+Les trois quarts résidaient à 40 minutes ou moins de leur lieu d'études et la plupart dépensaient plus de 15 euros par mois en transports. Moins de la moitié des participants recevaient de l'argent en dehors de leur emploi étudiant, de leur bourse et de leurs aides de la CAF. Nos individus allaient quelques fois par mois au restaurant, les trois quarts y allant trois fois ou moins, et quasiment un tiers des étudiants commandaient Uber Eats au moins une fois par mois. Enfin, plus de la moitié des étudiants dépensaient moins de 100 euros par mois en loisirs.
+
+
+```{r}
+variables <- c("MOYENNE", "ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(variables))) {
+  res <- sd(Budget[[variables[i]]])
+  cat(variables[i])
+  print(res)
+}
+```
+
+
+
+## B. Analyse univariée
+
+
+### 1. Variables quantitatives
+
+
+#### a. Représentation
+
+
+##### Statistiques
+
+```{r}
+summary(Budget)
+```
+
+
+##### Graphiques représentant la distribution des données
+
+```{r}
+### variables quantitatives continues : histogrammes
+
+par(mfrow = c(1, 1))
+hist(Budget$MOYENNE,
+     xlab = "MOYENNE",
+     main = "Variable expliquée",
+     col = "blue",
+     border = "black"
+     )
+
+hist(Budget$TRAJET,
+     xlab = "TRAJET (en min)",
+     main = " ",
+     col = "green")
+```
+
+```{r}
+ggplot(Budget, aes(x = MOYENNE)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Variable expliquée", x = "MOYENNE", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Budget, aes(x = TRAJET)) +
+  geom_histogram(binwidth = 10, fill = "green", color = "black") +
+  labs(title = "", x = "TRAJET (en min)", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+### variables quantitatives discrètes : diagrammes en barres
+
+var <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL")
+couleurs <- c("blue", "red", "orange", "purple" ,"brown", "green", "pink")
+
+for (i in seq(1, length(var), by = 2)) {
+  par(mfrow = c(1, 2))
+  # Premier graphique
+  barplot(table(Budget[[var[i]]]),
+          main = "",
+          xlab = var[i],
+          ylab = "EFFECTIF",
+          col = couleurs[i])
+  if (i + 1 <= length(var)) {
+    # Deuxième graphique
+    barplot(table(Budget[[var[i + 1]]]),
+            main = "",
+            xlab = var[i + 1],
+            ylab = "EFFECTIF",
+            col = couleurs[i + 1])
+  }
+}
+```
+
+```{r}
+par(mfrow = c(2,4))
+hist(Budget$TRAJET,
+     xlab = "TRAJET (en min)",
+     main = "",
+     col = "blue")
+barplot(table(Budget["ASSIDUITE"]),
+        xlab = "ASSIDUITE",
+        ylab = "EFFECTIF",
+        col = "blue")
+barplot(table(Budget["HEMPLOI"]),
+        xlab = "HEMPLOI",
+        ylab = "EFFECTIF",
+        col = "blue")
+barplot(table(Budget["RESTAURANT"]),
+        xlab = "RESTAURANT",
+        ylab = "EFFECTIF",
+        col = "blue")
+barplot(table(Budget["AGE"]),
+        xlab = "AGE",
+        ylab = "EFFECTIF",
+        col = "blue")
+barplot(table(Budget["STRESS"]),
+        xlab = "STRESS",
+        ylab = "EFFECTIF",
+        col = "blue")
+barplot(table(Budget["SOMMEIL"]),
+        xlab = "SOMMEIL",
+        ylab = "EFFECTIF",
+        col = "blue")
+```
+
+
+
+#### b. Vérification de l’atypicité de chaque variable quantitatives
+
+Valeurs atypiques (au seuil de risque de 5 %)
+
+```{r}
+variables <- c("MOYENNE", "ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(variables), by = 2)) {
+  par(mfrow = c(1, 2))
+  # Premier graphique
+  boxplot(Budget[[variables[i]]], 
+          ylab = variables[i], 
+          main = variables[i],
+          col = "red")
+  # Deuxième graphique
+  if (i + 1 <= length(variables)) {
+    boxplot(Budget[[variables[i + 1]]], 
+            ylab = variables[i + 1], 
+            main = variables[i + 1],
+            col = "red")
+  }
+}
+
+```
+
+D’après les graphiques ci-dessus, pour 6 des 8 variables, nous observons des points potentiellement atypiques. Il est donc nécessaire de vérifier si ASSIDUITE, HEMPLOI, RESTAURANT, AGE, SOMMEIL et TRAJET présentent effectivement des valeurs atypiques.
+Le nombre de points visibles dans les boxplots de ces 6 variables étant supérieur à 1 et inférieur à 10, nous pouvons utiliser la fonction RosnerTest.
+
+
+```{r}
+variables2 <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(variables2))) {
+  res <- rosnerTest((Budget[[variables2[i]]]), k=10, alpha = 0.05)
+  cat(variables2[i])
+  print(res)
+}
+```
+
+ASSIDUITE a 5 observations atypiques dont trois valeurs : 1, 2 et 3.
+HEMPLOI en a 1, la valeur 30.
+RESTAURANT en a 4, chacune correspondant à une valeur atypique : 10, 12, 20 et 50.
+AGE en a 4 de valeur différente : 28, 32, 33 et 40.
+SOMMEIL a 1 observation atypique, la valeur 4.
+TRAJET n'en a aucune.
+
+Observations atypiques :
+- ASSIDUITE : 39 44 48 113 128
+- HEMPLOI : 118
+- RESTAURANT : 25 53 58 88
+- AGE : 58 65 67 117
+- SOMMEIL : 74
+
+
+Suppression des observations atypiques et sauvegarde de la nouvelle base sous le nom Budget2.rda 
+
+```{r}
+Budget2 <- Budget[-c(25,39,44,48,53,58,65,67,74,88,113,117,118,128),]
+
+row.names(Budget2) <- NULL
+
+save(Budget2, file="Budget2.rda")
+
+View(Budget2)
+```
+
+
+Vérification de l’atypicité de chaque variable quantitatives
+
+```{r}
+variables2 <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(variables2))) {
+  res <- rosnerTest((Budget2[[variables2[i]]]), k=10, alpha = 0.05)
+  cat(variables2[i])
+  print(res)
+}
+```
+
+L'observation 116 de HEMPLOI, avec une valeur de 21, est considérée comme atypique.
+
+
+```{r}
+Budget3 <- Budget2[-c(116),]
+
+row.names(Budget3) <- NULL
+
+save(Budget3, file="Budget3.rda")
+
+View(Budget3)
+```
+
+
+Vérification de l’atypicité de chaque variable quantitatives
+
+```{r}
+variables2 <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(variables2))) {
+  res <- rosnerTest((Budget3[[variables2[i]]]), k=10, alpha = 0.05)
+  cat(variables2[i])
+  print(res)
+}
+```
+
+Aucune variable ne présente d'observation atypique.
+
+
+#### Après suppression des valeurs atypiques, il faut refaire les statistiques et graphiques.
+
+
+```{r}
+summary(Budget3)
+```
+
+```{r}
+quantis <- c("MOYENNE", "ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")
+
+for (i in seq(1, length(quantis))) {
+  res <- sd(Budget3[[quantis[i]]])
+  cat(quantis[i])
+  print(res)
+}
+```
+
+
+```{r}
+### variables quantitatives continues : histogrammes
+
+par(mfrow = c(1, 1))
+hist(Budget3$MOYENNE,
+     xlab = "MOYENNE",
+     main = "Variable expliquée",
+     col = "blue",
+     border = "black"
+     )
+
+hist(Budget3$TRAJET,
+     xlab = "TRAJET (en min)",
+     main = " ",
+     col = "green")
+```
+
+```{r}
+ggplot(Budget3, aes(x = MOYENNE)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Variable expliquée", x = "MOYENNE", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Budget3, aes(x = TRAJET)) +
+  geom_histogram(binwidth = 10, fill = "green", color = "black") +
+  labs(title = "", x = "TRAJET (en min)", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+### variables quantitatives discrètes : diagrammes en barres
+
+var <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL")
+couleurs <- c("blue", "red", "orange", "purple" ,"brown", "green", "pink")
+
+for (i in seq(1, length(var), by = 2)) {
+  par(mfrow = c(1, 2))
+  # Premier graphique
+  barplot(table(Budget3[[var[i]]]),
+          main = "",
+          xlab = var[i],
+          ylab = "EFFECTIF",
+          col = couleurs[i])
+  if (i + 1 <= length(var)) {
+    # Deuxième graphique
+    barplot(table(Budget3[[var[i + 1]]]),
+            main = "",
+            xlab = var[i + 1],
+            ylab = "EFFECTIF",
+            col = couleurs[i + 1])
+  }
+}
+```
+
+```{r}
+par(mfrow = c(2,4))
+hist(Budget3$TRAJET,
+     main = "Distribution de TRAJET",
+     xlab = "TRAJET (en min)",
+     ylab = "EFFECTIF",
+     col = "blue")
+
+barres <- c("ASSIDUITE", "HEMPLOI", "RESTAURANT", "AGE", "STRESS", "SOMMEIL")
+
+for (i in barres) {
+    barplot(table(Budget3[[i]]),
+            main = paste("Distribution de", i),
+            xlab = i,
+            ylab = "EFFECTIF",
+            col = "blue")
+}
+```
+
+
+### 2. Variables qualitatives
+
+```{r}
+summary(Budget3)
+```
+
+```{r}
+
+qualis <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "EMPLOI", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "TRANSPORT", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+
+tables <- lapply(qualis,
+                 function(var) {
+                   table(Budget3[[var]])
+                 })
+
+names(tables) <- qualis
+
+tables
+```
+
+
+## C. Analyse bivariée
+
+
+### 1. Deux variables quantitatives
+
+La variable Hemploi ne présente que 42 observations sur 135. Cela pourrait compromettre l'interprétation et la précision des corrélations et des régressions, justifiant sa mise à l'écart de l'analyse.
+
+#### a. Regression linéaire simple
+
+```{r}
+MOYENNE_ASSIDUITE <- lm(MOYENNE ~ ASSIDUITE, Budget3)
+MOYENNE_RESTAURANT <- lm(MOYENNE ~ RESTAURANT, Budget3)
+MOYENNE_AGE <- lm(MOYENNE ~ AGE, Budget3)
+MOYENNE_STRESS <- lm(MOYENNE ~ STRESS, Budget3)
+MOYENNE_SOMMEIL <- lm(MOYENNE ~ SOMMEIL, Budget3)
+MOYENNE_TRAJET <- lm(MOYENNE ~ TRAJET, Budget3)
+
+RLS <- c("MOYENNE_ASSIDUITE", "MOYENNE_RESTAURANT", "MOYENNE_AGE", "MOYENNE_STRESS", "MOYENNE_SOMMEIL", "MOYENNE_TRAJET")
+
+for (i in RLS) {
+  cat("RLS:", i, "\n")
+  print(summary(get(i)))
+}
+```
+
+
+```{r}
+### normalité
+
+RLS <- c("MOYENNE_ASSIDUITE", "MOYENNE_RESTAURANT", "MOYENNE_AGE", "MOYENNE_STRESS", "MOYENNE_SOMMEIL", "MOYENNE_TRAJET")
+
+for (i in RLS) {
+  residus <- residuals(get(i))
+  cat("RLS:", i, "\n")
+  print(shapiro.test(residus))
+}
+
+```
+
+p-value >= 0,05 -> résidus normaux
+
+
+```{r}
+### forme fonctionnelle
+
+for (i in RLS) {
+  cat("RLS:", i, "\n")
+  print(reset(get(i)))
+}
+```
+
+p-value >= 0,05 -> formes fonctionnelles linéaires hormis pour restaurant 
+
+
+```{r}
+### changement de la forme fonctionnelle et vérification des hypothèses
+
+MOYENNE_LNRESTAURANT <- lm(MOYENNE ~ log(RESTAURANT+1), Budget3)
+
+residus <- residuals(MOYENNE_LNRESTAURANT)
+shapiro.test(residus)
+
+reset(MOYENNE_LNRESTAURANT)
+```
+
+p-value >= 0,05 -> Normalité des résidus et forme fonctionnelle linéaire
+
+
+```{r}
+### Observations
+
+RLS <- c("MOYENNE_ASSIDUITE", "MOYENNE_LNRESTAURANT", "MOYENNE_AGE", "MOYENNE_STRESS", "MOYENNE_SOMMEIL", "MOYENNE_TRAJET")
+
+par(mfrow=c(1,1))
+
+for (i in RLS) {
+  plot(cooks.distance(get(i)),
+       type="h",
+       main = i, 
+       xlab = "Observations", 
+       ylab = "Distance de Cook")
+}
+```
+
+Chaque modèle présente une distance de Cook nettement inférieure à 1.
+Par conséquent, aucune observation influence grandement les estimations des paramètres des modèles ou les prédictions.
+
+```{r}
+### homoscédasticité des résidus
+
+for (i in RLS) {
+  cat("RLS:", i, "\n")
+  print(bptest(get(i)))
+}
+```
+Homoscédasticité vérifiée pour chaque modèle sauf MOYENNE-AGE
+
+```{r}
+residualPlots(MOYENNE_AGE)
+```
+
+```{r}
+MOYENNE_AGE2<-lm(MOYENNE ~ AGE, Budget3, weights=1/AGE)
+summary(MOYENNE_AGE2)
+
+bptest(MOYENNE_AGE2)
+```
+Homoscédasticité corrigée.
+
+
+
+
+```{r}
+### Vérification des hypothèses de la régression linéaire simple MOYENNE_AGE2
+
+MOYENNE_AGE2 <- lm(MOYENNE ~ AGE, Budget3, weights=1/AGE)
+summary(MOYENNE_AGE2)
+
+residus <- residuals(MOYENNE_AGE2)
+shapiro.test(residus)
+
+reset(MOYENNE_AGE2)
+
+plot(cooks.distance(MOYENNE_AGE2),
+     type="h", 
+     main = "MOYENNE_AGE2", 
+     xlab = "Observations", 
+     ylab = "Distance de Cook")
+```
+- Normalité des résidus
+- Forme fonctionnelle linéaire
+- Distance de Cook correcte
+
+Les hypothèses étant vérifiées nous pouvons interprétrer les résultats.
+
+```{r}
+RLS <- c("MOYENNE_ASSIDUITE", "MOYENNE_LNRESTAURANT", "MOYENNE_AGE2", "MOYENNE_STRESS", "MOYENNE_SOMMEIL", "MOYENNE_TRAJET")
+
+for (i in RLS) {
+  cat("RLS:", i, "\n")
+  print(summary(get(i)))
+}
+```
+
+Fisher vérifié pour MOYENNE_ASSIDUITE, MOYENNE_LNRESTAURANT, MOYENNE_STRESS 
+
+Student donc vérifié pour MOYENNE_ASSIDUITE, MOYENNE_LNRESTAURANT, MOYENNE_STRESS
+
+
+
+#### b. Nuage de points
+
+```{r}
+### graphiques bivariés entre Moyenne et une variable quantitative
+
+quantis <- c("ASSIDUITE", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")
+RLS <- c("MOYENNE_ASSIDUITE", "MOYENNE_LNRESTAURANT", "MOYENNE_AGE2", "MOYENNE_STRESS", "MOYENNE_SOMMEIL", "MOYENNE_TRAJET")
+
+for (i in seq(1, length(quantis))) {
+  par(mfrow=c(1,1))
+  plot(Budget3[[quantis[i]]],
+       Budget3$MOYENNE,
+       xlab = quantis[i], 
+       ylab = "MOYENNE")
+
+  model <- get(RLS[i])
+  abline(model, col = "red")
+}
+```
+
+
+#### c. Vérification de la corrélation (variables explicatives quantitatives)
+
+```{r}
+## par défaut : method = "pearson"
+
+quanti <- c("MOYENNE", "ASSIDUITE", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")
+
+cor(Budget3[,quanti], 
+use="complete.obs")
+```
+
+```{r}
+for (i in seq(1, length(quanti))) {
+  res <- shapiro.test(Budget3[[quanti[i]]])
+  cat(quanti[i])
+  print(res)
+}
+```
+
+Hormis MOYENNE avec une p-value supérieure à 0,05, toutes les autres variables ne suivent pas la loi normale.
+La corrélation de Spearman étant robuste, c'est à dire indépendante de la distribution des données, il faut calculer le coefficient de corrélation de Spearman.
+
+```{r}
+cor(Budget3[,c("MOYENNE", "ASSIDUITE",  "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")], 
+    use="complete.obs",method = c("spearman"))
+```
+
+Chaque coefficient est bien inférieur à la valeur absolue de 0,6.
+Il ne semble pas y avoir de corrélation entre ces variables explicatives.
+
+
+**Autres méthodes possibles** :
+
+```{r}
+mydata <- Budget3[,c("MOYENNE", "ASSIDUITE", "RESTAURANT", "AGE", "STRESS", "SOMMEIL", "TRAJET")]
+
+chart.Correlation(mydata, histogram=TRUE, pch=19, method = c("spearman"))
+```
+
+```{r}
+corr_mat=cor(mydata, method="s")
+
+corrplot(corr_mat, method='number', type="upper")
+```
+
+```{r}
+corrplot(corr_mat, type="upper")
+```
+
+
+
+
+### 2. Deux variables qualitatives
+
+- Tableau de contingence.
+
+```{r}
+Budget3 |> 
+  count(PARTICULIERS, TUTORAT)
+
+Budget3 |> 
+  count(BOURSE, EMPLOI)
+
+Budget3 |> 
+  count(LOGEMENT, CAF)
+
+Budget3 |> 
+  count(STATUT, ARGENT)
+```
+
+
+- Cartes des points chauds
+
+```{r}
+Budget3 |> 
+  count(PARTICULIERS, TUTORAT) |> 
+  ggplot() +
+  aes(x = PARTICULIERS, y = TUTORAT, fill = n) +
+  geom_tile() +
+  theme_bw()
+
+Budget3 |> 
+  count(BOURSE, EMPLOI) |> 
+  ggplot() +
+  aes(x = BOURSE, y = EMPLOI, fill = n) +
+  geom_tile() +
+  theme_bw()
+
+Budget3 |> 
+  count(LOGEMENT, CAF) |> 
+  ggplot() +
+  aes(x = LOGEMENT, y = CAF, fill = n) +
+  geom_tile() +
+  theme_bw()
+
+Budget3 |> 
+  count(STATUT, ARGENT) |> 
+  ggplot() +
+  aes(x = STATUT, y = ARGENT, fill = n) +
+  geom_tile() +
+  theme_bw()
+
+```
+
+
+- Test du Khi-deux
+
+```{r}
+PARTICULIERS_TUTORAT <- table(Budget3$PARTICULIERS, Budget3$TUTORAT)
+BOURSE_EMPLOI <- table(Budget3$BOURSE, Budget3$EMPLOI)
+LOGEMENT_CAF <- table(Budget3$LOGEMENT, Budget3$CAF)
+STATUT_ARGENT <- table(Budget3$STATUT, Budget3$ARGENT)
+
+chisq.test(PARTICULIERS_TUTORAT)
+chisq.test(BOURSE_EMPLOI)
+chisq.test(LOGEMENT_CAF)
+chisq.test(STATUT_ARGENT)
+```
+
+
+- matrice indépendance test khi deux
+
+```{r}
+quali <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "EMPLOI", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "TRANSPORT", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+ST_quali = as.data.frame(Budget3[,quali])
+sjp.chi2(ST_quali, show.legend = TRUE)
+```
+
+
+
+### 3. Une variable quantitative et une qualitative
+
+
+- Représentation
+
+```{r}
+quali <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "EMPLOI", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "TRANSPORT", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+for (var in quali) {
+
+  p <- Budget3 |>
+    ggplot() +
+    aes_string(x = "MOYENNE", y = var, color = var) +
+    geom_violin() +
+    geom_boxplot(width = 0.3, alpha = 0.5) +
+    geom_jitter(alpha = 0.3) +
+    theme_minimal() +
+    labs(title = paste("Distribution de la MOYENNE en fonction de", var))
+  
+  print(p)
+}
+```
+
+
+- Tests paramétriques : Comparaison de deux valeurs
+
+```{r}
+quali <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "EMPLOI", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "TRANSPORT", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+for (i in seq_along(quali)) {
+  modalites <- Budget3[[quali[i]]] |> levels()
+  normalite <- map(
+    .x = c(modalites),
+    .f = ~ {shapiro.test(
+      filter(Budget3, Budget3[[quali[i]]]== .x)$MOYENNE
+      )
+    }
+  )
+  cat(quali[i], "\n")
+  # Affichage des modalités de la variable
+  for (j in seq_along(modalites)) {
+  cat("  Niveau", j, ":", modalites[j], "\n")
+  }
+  print(normalite)
+}
+```
+
+La normalité de la distribution de MOYENNE en fonction des modalités de la variable EMPLOI est rejetée, car les p-values pour les deux niveaux sont inférieures à 0.05. Cela signifie que les données ne suivent pas une distribution normale, que l'étudiant ait ou non un emploi.
+
+La distribution de MOYENNE pour la catégorie "30 € et plus" de la variable TRANSPORT ne suit pas une distribution normale, car la p-value est inférieure à 0,05.
+
+Concernant les autres variables, la distribution des données de MOYENNE selon leurs modalités respecte la normalité (p-value > 0.05).
+
+Nous pouvons désormais procéder à la vérification de l'hypothèse d'indépendance des données, condition essentielle à la réalisation du test paramétrique sur les distributions normales.
+
+```{r}
+quali1 <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+for (i in seq_along(quali1)) {
+  var <- quali1[i]
+  test <- bartlett.test(MOYENNE ~ Budget3[[var]], data = Budget3)
+  cat(var)
+  print(test)
+}
+```
+
+Les résultats du test de Bartlett montrent que, pour toutes les variables analysées, il n’y a pas de différences significatives entre les variances des groupes.
+
+La normalité des distributions et l'homogénéité des variances permettent de procéder à une ANOVA.
+
+```{r}
+quali1 <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+for (i in seq_along(quali1)) {
+  var <- quali1[i]
+  test <- aov(MOYENNE ~ Budget3[[var]], data = Budget3)
+  cat(var, "\n")
+  print(summary(test))
+  cat("\n")
+}
+```
+
+Les résidus doivent suivre une loi normale et être homogènes pour que le modèle soit valide.
+
+```{r}
+quali1 <- c("FORMATION", "REVISIONS", "PARTICULIERS", "TUTORAT", "BOURSE", "LOGEMENT", "ARGENT",
+           "UBER", "DEPENSES", "CAF", "GENRE", "STATUT", "SANTE", "STRUCTURE")
+
+for (i in seq_along(quali1)) {
+  var <- quali1[i]
+  test <- aov(MOYENNE ~ Budget3[[var]], data = Budget3)
+  cat(var, "\n")
+  print(shapiro.test(test$residuals))
+  print(bartlett.test(test$residuals ~ Budget3[[var]]))
+  cat("\n")
+}
+```
+
+Les résidus suivent bien une loi normale et sont homogènes donc le modèle est validé.
+
+Les résultats de l'ANOVA révèlent que les différences de la MOYENNE en fonction des modalités de la variable SANTE sont statistiquement significatives, avec une p-value inférieure à 0.05. Cela signifie qu'il existe une relation notable entre la santé des étudiants et leur moyenne académique.
+
+Concernant les autres variables, l'ANOVA indique que la différence entre leurs catégories n'a pas d'influence significative sur la moyenne des étudiants.
+
+
+Afin de savoir quels groupes présentent des différences significatives, il faut utiliser un test post-hoc de Tukey.
+
+```{r}
+test_sante <- aov(MOYENNE ~ SANTE, data = Budget3)
+TukeyHSD(test_sante)
+```
+
+Cela signifie que, en moyenne, le groupe "Non" a une valeur supérieure de 0.901723 unités par rapport au groupe "Oui".
+
+La différence estimée entre la moyenne des étudiants ayant eu des problèmes de santé et ceux n'en ayant pas eu est de -0,901723. Autrement dit, les étudiants confrontés à des problèmes de santé ont, en général, une moyenne inférieure de 0,901723 point par rapport à ceux qui n'en ont pas eu.
+
+
+- Tests non paramétriques : Comparaison de deux échantillons indépendants
+
+
+```{r}
+quali2 <- c("EMPLOI", "TRANSPORT")
+
+for (i in seq_along(quali2)) {
+  var <- quali2[i]
+  test1 <- kruskal.test(MOYENNE ~ Budget3[[var]], data = Budget3)
+  test2 <- PMCMRplus::kwAllPairsNemenyiTest(
+    data = Budget3,
+    MOYENNE ~ Budget3[[var]]
+  )
+  cat(var)
+  print(test1)
+  print(test2)
+}
+```
+
+Le test de Kruskal-Wallis indique que la médiane des étudiants ne varie pas de manière significative en fonction des modalités des différentes variables analysées. Ainsi, ni l'emploi parallèle aux études, ni les dépenses mensuelles en transport n'ont d'impact significatif sur la moyenne des étudiants. Le test de Nemenyi confirme l'absence de différence significative entre les niveaux des deux variables, EMPLOI et TRANSPORT.
+
+
+
+
+# II. Estimation du modèle
+
+```{r}
+### modalité de référence
+
+mod <- c("REVISIONS", "TRANSPORT", "STATUT")
+
+for (i in seq(1, length(mod))) {
+  lev <- levels(Budget3[[mod[i]]])
+  cat(mod[i])
+  print(lev)
+}
+```
+
+```{r}
+### "Classe moyenne" comme modalité de référence
+
+Budget3$STATUT <- factor(Budget3$STATUT, levels= c("Classe moyenne", "Classe populaire", "Classe aisée"))
+levels(Budget3$STATUT)
+```
+
+
+Choisir le meilleur modèle en utilisant la fonction step (forward, backward, both) à partir de la base Budget
+
+```{r}
+reg0<-lm(MOYENNE~1,data=Budget3)
+
+reg <- lm(MOYENNE ~ FORMATION + ASSIDUITE + REVISIONS + PARTICULIERS + TUTORAT + BOURSE + EMPLOI + ARGENT + RESTAURANT + DEPENSES + TRANSPORT + GENRE + AGE + STRESS + SANTE + STRUCTURE, data=Budget3)
+
+summary(reg)
+```
+
+```{r}
+### méthode ascendante
+
+step(reg0, scope=list(lower=reg0, upper=reg), data=Budget3, direction="forward")
+```
+
+```{r}
+### méthode descendante
+
+step(reg, data=Budget3, direction="backward")
+```
+
+```{r}
+### méthode dans les 2 sens
+
+step(reg0, scope = list(lower=reg0,upper=reg), data=Budget3, direction="both")
+```
+
+Les variables explicatives sélectionnées par les 3 méthodes sont ARGENT, RESTAURANT, TRANSPORT, GENRE, STRESS, SANTE.
+
+```{r}
+regf <- lm(MOYENNE ~ ARGENT + RESTAURANT + TRANSPORT + GENRE + STRESS + SANTE, data=Budget3)
+
+summary(regf)
+```
+
+Attention : l’interprétation ne se fait que sur le modèle définitif lorsque toutes les hypothèses sont vérifiées
+
+
+
+## A. Variables explicatives supposées exogènes : Cov(xi,εi) = 0
+
+### 1. Vérification de la normalité des résidus
+
+```{r}
+### graphique 2
+
+plot(regf, 2)
+```
+
+```{r}
+### test de Shapiro-Wilk
+
+residus <- residuals(regf) 
+shapiro.test(residus)
+```
+
+p>=0,05 H0 non rejetée => les erreurs suivent une loi normale.
+
+Le test de Shapiro-Wilk est plus efficace pour les petits échantillons. 135 observations étant supérieur à 100, il peut être plus approprié d'effectuer le test de Kolmogorov-Smirnov.
+
+```{r}
+### test de Kolmogorov-Smirnov
+
+residus <- residuals(regf) 
+ks.test(residus, "pnorm", mean(residus), sd(residus))
+```
+
+p>=0,05 H0 non rejetée => Les résidus suivent une distribution normale.
+
+
+### 2. Vérification de la forme fonctionnelle utilisée
+
+Forme linéaire retenue pour le modèle estimé appropriée ?
+
+```{r}
+### graphique 3
+
+plot(regf, 3)
+```
+
+```{r}
+### test de Ramsey
+
+reset(regf)
+```
+
+p>=0,05 H0 non rejetée
+
+On peut accepter au seuil de risque de 5% la forme fonctionnelle linéaire du modèle.
+
+```{r}
+### plots avec les variables quantitatives pour distinguer la forme fonctionnelle
+
+plot(Budget3$MOYENNE~Budget3$RESTAURANT)
+plot(Budget3$MOYENNE~Budget3$STRESS)
+```
+
+
+### 3. Vérification de la multicolinéarité
+
+```{r}
+vif(regf)
+```
+
+Les VIF ajustés montrent des valeurs proches de 1 pour chaque variable. Il n'existe donc pas de problème de multicolinéarité entre les variables explicatives du modèle. Par conséquent, aucune des variables n'a besoin d'être supprimée.
+
+
+### 4. Vérification des observations influentes
+
+Existence de valeurs influençant les estimations via le graphique de la distance de Cook
+
+```{r}
+### graphique 4
+
+plot(regf, 4)
+```
+
+```{r}
+par(mfrow=c(1,1))
+plot(cooks.distance(regf),type="h")
+```
+
+Étant donné que la distance de Cook est nettement inférieure à 1, aucune observation n'exerce une grande influence sur les estimations des paramètres du modèle ou sur les prédictions. Il n'est donc pas nécessaire de supprimer des observations.
+
+
+### 5. Vérification de l'hypothèse d'homoscédasticité des résidus du modèle
+
+Hypothèse d’homoscédasticité des résidus (au seuil de risque de 5%) du modèle
+
+```{r}
+### graphique 1
+
+plot(regf, 1)
+```
+
+```{r}
+bptest(regf)
+```
+
+La p-value est largement supérieure à 0,05, l'hypothèse nulle n'est donc pas rejetée : la variance des résidus est supposée constante. Par conséquent, la méthode des MCO est à privilégiée.
+
+
+
+## B. Une ou plusieurs variables explicatives supposées endogènes : Cov(xi,εi) ≠ 0
+
+Vérification de l’endogéneité de la variable lnsuperficie avec les tests associés.
+
+Variables instruments :
+
+STATUT pour PARTICULIERS
+
+SOMMEIL pour REVISIONS
+TRAJET pour REVISIONS
+
+CAF pour STRESS
+UBER pour STRESS
+LOGEMENT pour STRESS
+SOMMEIL pour STRESS
+
+```{r}
+reg_DMC<-ivreg(MOYENNE ~ ARGENT + RESTAURANT + TRANSPORT + GENRE + STRESS + SANTE | ARGENT + RESTAURANT + TRANSPORT + GENRE + SANTE + CAF + UBER + LOGEMENT + SOMMEIL, data=Budget3)
+
+summary(reg_DMC, diagnostics = TRUE)
+```
+
+Test "Weak Instruments"
+
+p<0,05 H0 rejetée
+=> impact significatif des instruments sur la variable endogène
+
+Test de Sargan (nb instruments > 1)
+
+p>=0,05 H0 non rejetée
+=> validité des instruments
+
+
+Test de Wu-Hausman
+		 H0 :  les coefficients estimés par MCO et 2SLS ne diffèrent pas significativement
+
+p>=0,05 H0 non rejetée
+-> variable(s) testée(s) supposée(s) exogène(s)
+=> utiliser la méthode des MCO
+
+
+## C. Prévision
+
+```{r}
+Budget3$Mpredict = round(predict(regf),2)
+
+Budget3$MOYENNE
+
+plot(Budget3$Mpredict, Budget3$MOYENNE, xlab="Moyenne prédite", ylab="Moyenne observée", col=0, main = "Moyenne prédite par le modèle et moyenne réelle", abline(a = 0, b = 1, col = "red", lty = 1))
+text(Budget3$Mpredict, Budget3$MOYENNE, row.names(Budget3), cex = .6)
+```
+
+```{r}
+par(mfrow=c(2,1))
+
+ggplot(Budget3, aes(x = Mpredict)) +
+  geom_histogram(binwidth = 0.5, fill = "green", color = "black") +
+  labs(title = "Distribution prédite de la variable MOYENNE", x = "Moyenne prédite", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Budget3, aes(x = MOYENNE)) +
+  geom_histogram(binwidth = 0.5, fill = "blue", color = "black") +
+  labs(title = "Distribution observée de la variable MOYENNE", x = "Moyenne observée", y = "Fréquence") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+
+
+
+
