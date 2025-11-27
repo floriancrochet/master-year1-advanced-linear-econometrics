@@ -1,6 +1,8 @@
 # Econometric Analysis of Budget Management and Academic Success  
 *A quantitative study on the financial determinants of students’ GPA in 2023–2024.*
 
+[**Report (PDF – online)**](https://drive.google.com/file/d/1-DxY2NYDfti4ZtEIEVdMjJhaNc-u2zPG/view?usp=drive_link)
+
 ---
 
 ## 📘 Overview
