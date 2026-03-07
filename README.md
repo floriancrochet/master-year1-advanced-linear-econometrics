@@ -1,124 +1,140 @@
-# Econometric Analysis of Budget Management and Academic Success  
-*A quantitative study on the financial determinants of students’ GPA in 2023–2024.*
-
-[**Report (PDF – online)**](https://drive.google.com/file/d/1-DxY2NYDfti4ZtEIEVdMjJhaNc-u2zPG/view?usp=drive_link)
+# Econometric Analysis of Financial Management Impact on Academic Success
+*This project analyzes the impact of students’ financial behavior on their academic performance using econometric modeling applied to survey data.*
 
 ---
 
-## 📘 Overview
-This project investigates the **impact of students’ financial management on their academic performance**.  
-It was conducted as part of the **Master 1 in Econometrics and Statistics – Applied Econometrics track** at the University of Nantes.  
+## 🎯 Overview
+This project investigates the impact of students’ financial behavior on their academic performance using econometric modeling applied to survey data collected from students in Loire-Atlantique (France) during the 2023–2024 academic year.
 
 **Objectives**
-- Quantify the relationship between students’ financial behavior and their overall grade average  
-- Evaluate endogeneity issues and apply appropriate econometric methods  
-- Provide evidence-based insights to improve student well-being and performance  
+- Identify key financial, social, and academic determinants of academic success.
+- Apply linear econometric modeling with diagnostic and robustness tests.
+- Evaluate the predictive performance of the estimated model.
+- Provide policy recommendations to reduce financial stress among students.
 
-The study is based on a self-collected dataset from students in the Loire-Atlantique region, combining social, academic, and financial variables to model GPA outcomes.
+---
+
+## 🗄️ Data
+- **Source:** Survey data collected from students in Loire-Atlantique (France).
+- **Time Period:** 2023–2024 academic year.
+- **Target Variable:** `MOYENNE` (Grade Point Average).
+- **Key Predictors:** `ASSIDUITE`, `STRESS`, `RESTAURANT`, `AGE`, `SOMMEIL`, `TRAJET`.
+- **Preprocessing:** Outlier detection and factor conversion.
+- **Data Availability:** Survey data provided in `data/`.
+
+---
+
+## 🧠 Methodology
+- **Theoretical Approach:** Linear Econometrics.
+- **Mathematical Framework:** Ordinary Least Squares (OLS) and Two-Stage Least Squares (2SLS).
+- **Evaluation Strategy:** Hypothesis testing (Normality, Heteroskedasticity, Multicollinearity) and specification testing.
 
 ---
 
 ## ⚙️ Features
-- Linear econometric modeling using OLS and 2SLS (Two-Stage Least Squares)  
-- Statistical validation: tests for normality, heteroskedasticity, multicollinearity, and endogeneity  
-- Stepwise model selection and instrument relevance testing  
-- Visualization of descriptive and regression results under R  
-- Forecasting and interpretation of academic success determinants  
+- **Analyze Data Distributions:** Visualize univariate and bivariate distributions of academic and financial variables.
+- **Model Academic Performance:** Estimate linear regression models to explain grade point averages.
+- **Correct Endogeneity:** Apply instrumental variable approaches to address endogeneity in stress-related variables.
+- **Validate Assumptions:** Test for normality, heteroskedasticity, and multicollinearity in regression residuals.
 
 ---
 
 ## 🧰 Tech Stack
-**Language:** R  
-**Libraries:** `openxlsx`, `car`, `MASS`, `tidyverse`, `EnvStats`, `lmtest`, `PerformanceAnalytics`, `corrplot`, `sjPlot`, `ggplot2`, `leaps`, `AER`  
+- **Language:** R
+- **Numerical Computing & Data Manipulation:** `tidyverse`, `openxlsx`, `leaps`
+- **Econometrics & Statistical Inference:** `MASS`, `car`, `lmtest`, `AER`, `EnvStats`
+- **Data Visualization:** `ggplot2`, `corrplot`, `sjPlot`, `PerformanceAnalytics`
+- **Reporting & Documentation:** `Quarto`
 
 ---
 
-## ⚙️ Installation
-
-Clone the repository and ensure required R packages are installed:
+## 📦 Installation
 
 ```bash
-git clone https://github.com/<your-username>/budget-econometrics.git
-cd budget-econometrics
-Rscript -e 'install.packages(c("openxlsx","car","MASS","tidyverse","EnvStats","lmtest","PerformanceAnalytics","corrplot","sjPlot","ggplot2","leaps","AER"))'
+git clone https://github.com/À compléter/gestion-budget-etudiants.git
+cd gestion-budget-etudiants
+```
+
+```R
+install.packages(c("tidyverse", "MASS", "car", "lmtest", "AER",
+                   "PerformanceAnalytics", "ggplot2", "sjPlot",
+                   "corrplot", "EnvStats", "leaps", "openxlsx"))
 ```
 
 ---
 
-## 📚 Usage Example
+## 💻 Usage Example
 
 ```r
-# Load data
-Budget <- read.xlsx("data/budget.xlsx")
+library(openxlsx)
+library(AER)
+
+# Import dataset
+Budget <- read.xlsx("data/student_budget_data_2023_2024.xlsx")
 
 # Fit linear model
-model <- lm(MOYENNE ~ ASSIDUITE + STRESS + RESTAURANT + EMPLOI + AGE, data = Budget)
-
-# Display summary
+model <- lm(MOYENNE ~ ASSIDUITE + STRESS + RESTAURANT + AGE, data = Budget)
 summary(model)
 
-# Plot residuals
-plot(model$residuals)
+# Two-Stage Least Squares example
+iv_model <- ivreg(MOYENNE ~ STRESS | CAF + LOGEMENT + SOMMEIL, data = Budget)
+summary(iv_model)
 ```
-
-Additional analyses and plots are included in the Quarto script `script économétrie linéaire avancée.qmd`.
 
 ---
 
 ## 📂 Project Structure
 
-```
-budget-econometrics/
+```text
+master-year1-advanced-linear-econometrics/
 │
-├── data/                 # Collected survey data (budget.xlsx)
-├── src/                  # Econometric scripts
-│   └── script_econometrie_lineaire_avancee.R
-├── results/              # Model outputs, tables, and figures
-├── report/               # Final report (Pierre et Florian - dossier d'économétrie.pdf)
-├── Projet_M1.pdf         # Assignment guidelines
-└── README.md
+├── data/
+│   └── student_budget_data_2023_2024.xlsx
+├── report/
+│   └── report.pdf
+├── LICENSE
+├── README.md
+├── master-year1-advanced-linear-econometrics.Rproj
+└── project.qmd
 ```
 
 ---
 
 ## 📊 Results
 
-Example result:  
-The analysis reveals that **financial stress, number of restaurant visits, and student employment** negatively affect GPA, whereas **good health, tutoring participation, and external financial support** have a positive influence.  
-
-Example visualization:  
-![Distribution of GPA](./assets/gpa_distribution.png)
-
-> Detailed graphs of model fit, residuals, and forecast diagnostics are provided in the R script output.
+### Key Findings
+- Financial stress negatively impacts academic performance.
+- Working while studying and frequent restaurant visits are associated with lower averages.
+- Tutoring, scholarships, and financial support have a positive effect.
+- Instrumental variables (CAF, rent, Uber Eats usage) effectively correct endogeneity in stress-related variables.
 
 ---
 
-## 🧠 References
-- Hamilton, *Time Series Analysis*  
-- Wooldridge, *Introductory Econometrics: A Modern Approach*  
-- Hyndman & Athanasopoulos, *Forecasting: Principles and Practice*  
-- Lassarre et al. (2003). *Stress des étudiants et réussite universitaire.*  
-- Verley & Zilloniz (2011). *Fragilités économiques, fragilités studieuses.*  
-- Ministère de l’Enseignement Supérieur (2023). *Tableaux de réussite et passage par discipline.*  
+## 📚 References
+- Hamilton, J.D. (1994). *Time Series Analysis*.
+- Hyndman, R.J. & Athanasopoulos, G. (2018). *Forecasting: Principles and Practice.*
+- Lassarre, D., Giron, C., & Paty, B. (2003). *Stress des étudiants et réussite universitaire*.
+- Verley, E. & Zilloniz, S. (2011). *Fragilités économiques, fragilités studieuses.*
+- Wooldridge, J.M. (2019). *Introductory Econometrics: A Modern Approach*.
 
 ---
 
 ## 📜 License
-This project is released under the **MIT License**.  
-© 2025 Pierre Quintin de Kercadio and Florian Crochet
+This project is released under the MIT License.
+© 2025 Pierre Quintin de Kercadio & Florian Crochet
 
 ---
 
 ## 👤 Authors
-**Pierre Quintin de Kercadio**  
-[GitHub Profile](https://github.com/PierreQDK)  
+**Pierre QUINTIN DE KERCADIO**
+[GitHub Profile](https://github.com/PierreQDK)
 
-**Florian Crochet**  
+**Florian CROCHET**
 [GitHub Profile](https://github.com/floriancrochet)
 
 *Master 1 – Econometrics & Statistics, Applied Econometrics Track*
 
 ---
 
-## 💬 Acknowledgments
-Thanks to our professors and the open-source R community for their methodological guidance and tools that enabled this research.
+## 🤝 Acknowledgments
+This work was conducted as part of the Advanced Linear Econometrics course, supervised by Muriel Travers. We thank the students who participated in the survey.
