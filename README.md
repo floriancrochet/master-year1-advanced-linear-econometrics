@@ -120,16 +120,16 @@ master-year1-advanced-linear-econometrics/
 ---
 
 ## 📜 License
-This project is released under the MIT License.
+This project is released under the MIT License.  
 © 2025 Pierre Quintin de Kercadio & Florian Crochet
 
 ---
 
 ## 👤 Authors
-**Pierre QUINTIN DE KERCADIO**
+**Pierre QUINTIN DE KERCADIO**  
 [GitHub Profile](https://github.com/PierreQDK)
 
-**Florian CROCHET**
+**Florian CROCHET**  
 [GitHub Profile](https://github.com/floriancrochet)
 
 *Master 1 – Econometrics & Statistics, Applied Econometrics Track*
